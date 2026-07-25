@@ -1,0 +1,6 @@
+{
+  "name": "NEOVA STORE",
+  "description": "تطبيق NEOVA STORE لشحن الألعاب والخدمات الرقمية والسوشيال ميديا",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
