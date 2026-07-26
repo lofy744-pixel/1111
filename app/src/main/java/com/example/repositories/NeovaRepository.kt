@@ -13,12 +13,16 @@ import com.example.models.OrderRequest
 import com.example.models.PaymentMethod
 import com.example.models.ServiceItem
 import com.example.models.AppStats
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class NeovaRepository(context: Context) {
 
+    private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val dao: NeovaDao = NeovaDatabase.getDatabase(context).neovaDao()
     private val firebaseService: FirebaseService = FirebaseService(context)
 
@@ -33,9 +37,51 @@ class NeovaRepository(context: Context) {
     val appSettingsFlow: Flow<AppSettings?> = dao.getAppSettingsFlow()
     val adminCredentialsFlow: Flow<AdminCredentials?> = dao.getAdminCredentialsFlow()
 
+    init {
+        startRealtimeListeners()
+    }
+
+    private fun startRealtimeListeners() {
+        firebaseService.listenToOrders { orderList ->
+            repositoryScope.launch {
+                orderList.forEach { dao.insertOrder(it) }
+            }
+        }
+
+        firebaseService.listenToServices { serviceList ->
+            repositoryScope.launch {
+                dao.insertServices(serviceList)
+            }
+        }
+
+        firebaseService.listenToCategories { categoryList ->
+            repositoryScope.launch {
+                dao.insertCategories(categoryList)
+            }
+        }
+
+        firebaseService.listenToBanners { bannerList ->
+            repositoryScope.launch {
+                dao.insertBanners(bannerList)
+            }
+        }
+
+        firebaseService.listenToPaymentMethods { paymentList ->
+            repositoryScope.launch {
+                dao.insertPaymentMethods(paymentList)
+            }
+        }
+
+        firebaseService.listenToAppSettings { settings ->
+            repositoryScope.launch {
+                dao.saveAppSettings(settings)
+            }
+        }
+    }
+
     suspend fun syncAllData() = withContext(Dispatchers.IO) {
         try {
-            // Seed local Room DB immediately with defaults if empty
+            // Seed local Room DB immediately with defaults ONLY if empty
             seedDefaultsIfNecessary()
 
             // Fetch live data from Firestore and sync into Room
@@ -97,11 +143,18 @@ class NeovaRepository(context: Context) {
     }
 
     private suspend fun seedDefaultsIfNecessary() {
-        dao.insertCategories(firebaseService.getDefaultCategories())
-        dao.insertServices(firebaseService.getDefaultServices())
-        dao.insertBanners(firebaseService.getDefaultBanners())
-        dao.insertPaymentMethods(firebaseService.getDefaultPaymentMethods())
-        dao.insertAppStats(firebaseService.getDefaultStats())
+        if (dao.getCategoriesCount() == 0) {
+            dao.insertCategories(firebaseService.getDefaultCategories())
+        }
+        if (dao.getServicesCount() == 0) {
+            dao.insertServices(firebaseService.getDefaultServices())
+        }
+        if (dao.getBannersCount() == 0) {
+            dao.insertBanners(firebaseService.getDefaultBanners())
+        }
+        if (dao.getPaymentMethodsCount() == 0) {
+            dao.insertPaymentMethods(firebaseService.getDefaultPaymentMethods())
+        }
         if (dao.getAdminCredentials() == null) {
             dao.saveAdminCredentials(AdminCredentials())
         }

@@ -19,6 +19,21 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface NeovaDao {
+    @Query("SELECT COUNT(*) FROM categories")
+    suspend fun getCategoriesCount(): Int
+
+    @Query("SELECT COUNT(*) FROM services")
+    suspend fun getServicesCount(): Int
+
+    @Query("SELECT COUNT(*) FROM banners")
+    suspend fun getBannersCount(): Int
+
+    @Query("SELECT COUNT(*) FROM payment_methods")
+    suspend fun getPaymentMethodsCount(): Int
+
+    @Query("SELECT COUNT(*) FROM orders")
+    suspend fun getOrdersCount(): Int
+
     @Query("SELECT * FROM services WHERE isAvailable = 1")
     fun getAllServices(): Flow<List<ServiceItem>>
 

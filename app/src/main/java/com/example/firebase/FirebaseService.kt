@@ -13,6 +13,7 @@ import com.example.models.ServiceItem
 import com.example.models.AppStats
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.tasks.await
 
 class FirebaseService(private val context: Context? = null) {
@@ -280,6 +281,100 @@ class FirebaseService(private val context: Context? = null) {
         } catch (e: Exception) {
             Log.w("FirebaseService", "Could not save activity log to Firestore: ${e.message}")
             false
+        }
+    }
+
+    // Real-time Firestore Snapshot Listeners for Continuous Auto-Update
+    fun listenToOrders(onUpdate: (List<OrderRequest>) -> Unit): ListenerRegistration? {
+        val database = getDb() ?: return null
+        return try {
+            database.collection("orders").addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w("FirebaseService", "Orders listener error: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val orders = snapshot.documents.mapNotNull { it.toObject(OrderRequest::class.java) }
+                    onUpdate(orders)
+                }
+            }
+        } catch (e: Exception) {
+            Log.w("FirebaseService", "Failed to register orders listener: ${e.message}")
+            null
+        }
+    }
+
+    fun listenToServices(onUpdate: (List<ServiceItem>) -> Unit): ListenerRegistration? {
+        val database = getDb() ?: return null
+        return try {
+            database.collection("services").addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                if (snapshot != null) {
+                    val list = snapshot.documents.mapNotNull { it.toObject(ServiceItem::class.java) }
+                    if (list.isNotEmpty()) onUpdate(list)
+                }
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun listenToCategories(onUpdate: (List<CategoryItem>) -> Unit): ListenerRegistration? {
+        val database = getDb() ?: return null
+        return try {
+            database.collection("categories").addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                if (snapshot != null) {
+                    val list = snapshot.documents.mapNotNull { it.toObject(CategoryItem::class.java) }
+                    if (list.isNotEmpty()) onUpdate(list)
+                }
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun listenToBanners(onUpdate: (List<BannerItem>) -> Unit): ListenerRegistration? {
+        val database = getDb() ?: return null
+        return try {
+            database.collection("banners").addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                if (snapshot != null) {
+                    val list = snapshot.documents.mapNotNull { it.toObject(BannerItem::class.java) }
+                    if (list.isNotEmpty()) onUpdate(list)
+                }
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun listenToPaymentMethods(onUpdate: (List<PaymentMethod>) -> Unit): ListenerRegistration? {
+        val database = getDb() ?: return null
+        return try {
+            database.collection("payment_methods").addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                if (snapshot != null) {
+                    val list = snapshot.documents.mapNotNull { it.toObject(PaymentMethod::class.java) }
+                    if (list.isNotEmpty()) onUpdate(list)
+                }
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    fun listenToAppSettings(onUpdate: (AppSettings) -> Unit): ListenerRegistration? {
+        val database = getDb() ?: return null
+        return try {
+            database.collection("app_config").document("settings").addSnapshotListener { doc, error ->
+                if (error != null) return@addSnapshotListener
+                if (doc != null && doc.exists()) {
+                    doc.toObject(AppSettings::class.java)?.let { onUpdate(it) }
+                }
+            }
+        } catch (e: Exception) {
+            null
         }
     }
 
