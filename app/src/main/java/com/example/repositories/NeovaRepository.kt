@@ -144,22 +144,34 @@ class NeovaRepository(context: Context) {
 
     private suspend fun seedDefaultsIfNecessary() {
         if (dao.getCategoriesCount() == 0) {
-            dao.insertCategories(firebaseService.getDefaultCategories())
+            val categories = firebaseService.getDefaultCategories()
+            dao.insertCategories(categories)
+            categories.forEach { firebaseService.saveCategoryToFirestore(it) }
         }
         if (dao.getServicesCount() == 0) {
-            dao.insertServices(firebaseService.getDefaultServices())
+            val services = firebaseService.getDefaultServices()
+            dao.insertServices(services)
+            services.forEach { firebaseService.saveServiceToFirestore(it) }
         }
         if (dao.getBannersCount() == 0) {
-            dao.insertBanners(firebaseService.getDefaultBanners())
+            val banners = firebaseService.getDefaultBanners()
+            dao.insertBanners(banners)
+            banners.forEach { firebaseService.saveBannerToFirestore(it) }
         }
         if (dao.getPaymentMethodsCount() == 0) {
-            dao.insertPaymentMethods(firebaseService.getDefaultPaymentMethods())
+            val paymentMethods = firebaseService.getDefaultPaymentMethods()
+            dao.insertPaymentMethods(paymentMethods)
+            paymentMethods.forEach { firebaseService.savePaymentMethodToFirestore(it) }
         }
         if (dao.getAdminCredentials() == null) {
-            dao.saveAdminCredentials(AdminCredentials())
+            val creds = AdminCredentials()
+            dao.saveAdminCredentials(creds)
+            firebaseService.saveAdminCredentialsToFirestore(creds)
         }
         if (dao.getAppSettings() == null) {
-            dao.saveAppSettings(AppSettings())
+            val settings = AppSettings()
+            dao.saveAppSettings(settings)
+            firebaseService.saveAppSettingsToFirestore(settings)
         }
     }
 
