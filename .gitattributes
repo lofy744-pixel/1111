@@ -1,0 +1,13 @@
+# Auto-detect text files and perform LF normalization on checkout
+* text=auto eol=lf
+
+# Force binary files to be treated as binary
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.so binary
+*.aar binary
+*.klib binary
