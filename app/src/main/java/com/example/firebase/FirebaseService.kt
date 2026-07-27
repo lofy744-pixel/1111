@@ -21,11 +21,27 @@ class FirebaseService(private val context: Context? = null) {
     private fun getDb(): FirebaseFirestore? {
         return try {
             val ctx = context
-            if (ctx != null && FirebaseApp.getApps(ctx).isEmpty()) {
-                return null
+            if (ctx != null) {
+                if (FirebaseApp.getApps(ctx).isEmpty()) {
+                    FirebaseApp.initializeApp(ctx)
+                }
+            } else {
+                if (FirebaseApp.getApps(com.google.firebase.FirebaseApp.getInstance().applicationContext).isEmpty()) {
+                    // Firebase already initialized default app
+                }
             }
-            FirebaseFirestore.getInstance()
+            val instance = FirebaseFirestore.getInstance()
+            try {
+                val settings = com.google.firebase.firestore.FirebaseFirestoreSettings.Builder()
+                    .setPersistenceEnabled(true)
+                    .build()
+                instance.firestoreSettings = settings
+            } catch (ignored: Exception) {
+                // Settings can only be configured once before Firestore usage
+            }
+            instance
         } catch (t: Throwable) {
+            Log.e("FirebaseService", "Error getting Firestore instance: ${t.message}")
             null
         }
     }

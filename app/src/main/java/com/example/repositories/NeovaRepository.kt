@@ -50,25 +50,25 @@ class NeovaRepository(context: Context) {
 
         firebaseService.listenToServices { serviceList ->
             repositoryScope.launch {
-                dao.insertServices(serviceList)
+                dao.replaceAllServices(serviceList)
             }
         }
 
         firebaseService.listenToCategories { categoryList ->
             repositoryScope.launch {
-                dao.insertCategories(categoryList)
+                dao.replaceAllCategories(categoryList)
             }
         }
 
         firebaseService.listenToBanners { bannerList ->
             repositoryScope.launch {
-                dao.insertBanners(bannerList)
+                dao.replaceAllBanners(bannerList)
             }
         }
 
         firebaseService.listenToPaymentMethods { paymentList ->
             repositoryScope.launch {
-                dao.insertPaymentMethods(paymentList)
+                dao.replaceAllPaymentMethods(paymentList)
             }
         }
 

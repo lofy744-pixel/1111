@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.example.models.ActivityLog
 import com.example.models.AdminCredentials
@@ -87,6 +88,42 @@ interface NeovaDao {
 
     @Query("DELETE FROM payment_methods WHERE id = :methodId")
     suspend fun deletePaymentMethodById(methodId: String)
+
+    @Query("DELETE FROM services")
+    suspend fun clearAllServices()
+
+    @Transaction
+    suspend fun replaceAllServices(services: List<ServiceItem>) {
+        clearAllServices()
+        insertServices(services)
+    }
+
+    @Query("DELETE FROM categories")
+    suspend fun clearAllCategories()
+
+    @Transaction
+    suspend fun replaceAllCategories(categories: List<CategoryItem>) {
+        clearAllCategories()
+        insertCategories(categories)
+    }
+
+    @Query("DELETE FROM banners")
+    suspend fun clearAllBanners()
+
+    @Transaction
+    suspend fun replaceAllBanners(banners: List<BannerItem>) {
+        clearAllBanners()
+        insertBanners(banners)
+    }
+
+    @Query("DELETE FROM payment_methods")
+    suspend fun clearAllPaymentMethods()
+
+    @Transaction
+    suspend fun replaceAllPaymentMethods(methods: List<PaymentMethod>) {
+        clearAllPaymentMethods()
+        insertPaymentMethods(methods)
+    }
 
     @Query("SELECT * FROM app_stats WHERE id = 'default_stats'")
     fun getAppStats(): Flow<AppStats?>
