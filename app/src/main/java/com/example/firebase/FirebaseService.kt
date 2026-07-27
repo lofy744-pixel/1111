@@ -25,12 +25,15 @@ class FirebaseService(private val context: Context? = null) {
 
     private fun getDb(): FirebaseFirestore? {
         return try {
-            val ctx = context?.applicationContext
-            if (ctx != null && FirebaseApp.getApps(ctx).isEmpty()) {
-                try {
-                    FirebaseApp.initializeApp(ctx)
-                } catch (e: Exception) {
-                    Log.w("FirebaseService", "Default FirebaseApp.initializeApp failed: ${e.message}. Using explicit FirebaseOptions fallback.")
+            val defaultAppExists = try {
+                FirebaseApp.getInstance()
+                true
+            } catch (e: Exception) {
+                false
+            }
+            if (!defaultAppExists) {
+                val ctx = context?.applicationContext
+                if (ctx != null) {
                     val options = com.google.firebase.FirebaseOptions.Builder()
                         .setApiKey("AIzaSyCmOxg2Ud2Ceagwgo9jRrUhBkFbjf7hm6k")
                         .setApplicationId("1:957326634552:android:bb45737452cc3cb0fdc0cd")
@@ -38,7 +41,17 @@ class FirebaseService(private val context: Context? = null) {
                         .setStorageBucket("neova-store.firebasestorage.app")
                         .setGcmSenderId("957326634552")
                         .build()
-                    FirebaseApp.initializeApp(ctx, options)
+                    try {
+                        FirebaseApp.initializeApp(ctx, options)
+                        Log.d("FirebaseService", "FirebaseApp successfully initialized with explicit options and context")
+                    } catch (e: Exception) {
+                        try {
+                            FirebaseApp.initializeApp(ctx)
+                            Log.d("FirebaseService", "FirebaseApp successfully initialized with default config")
+                        } catch (e2: Exception) {
+                            Log.e("FirebaseService", "Failed to initialize FirebaseApp with context: ${e2.message}")
+                        }
+                    }
                 }
             }
             FirebaseFirestore.getInstance()
