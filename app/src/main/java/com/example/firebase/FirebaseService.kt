@@ -114,12 +114,18 @@ class FirebaseService(private val context: Context? = null) {
     }
 
     suspend fun saveOrderToFirestore(order: OrderRequest): Boolean {
-        val database = getDb() ?: return false
+        val database = getDb()
+        if (database == null) {
+            Log.e("FirebaseService", "CRITICAL ERROR: Firestore instance is null when saving order #${order.orderId}")
+            return false
+        }
         return try {
+            Log.d("FirebaseService", "Writing order #${order.orderId} to Firestore collection 'orders'...")
             database.collection("orders").document(order.orderId).set(order).await()
+            Log.d("FirebaseService", "SUCCESSFULLY saved order #${order.orderId} to Firestore collection 'orders'")
             true
         } catch (e: Exception) {
-            Log.w("FirebaseService", "Could not save order to Firestore: ${e.message}")
+            Log.e("FirebaseService", "FAILED to save order #${order.orderId} to Firestore collection 'orders': ${e.message}", e)
             false
         }
     }
@@ -128,9 +134,16 @@ class FirebaseService(private val context: Context? = null) {
         val database = getDb() ?: return emptyList()
         return try {
             val snapshot = database.collection("orders").get().await()
-            snapshot.documents.mapNotNull { it.toObject(OrderRequest::class.java) }
+            snapshot.documents.mapNotNull { doc ->
+                try {
+                    doc.toObject(OrderRequest::class.java)
+                } catch (e: Exception) {
+                    Log.e("FirebaseService", "Error deserializing OrderRequest from doc ${doc.id}: ${e.message}")
+                    null
+                }
+            }
         } catch (e: Exception) {
-            Log.w("FirebaseService", "Could not fetch orders from Firestore: ${e.message}")
+            Log.e("FirebaseService", "Could not fetch orders from Firestore collection 'orders': ${e.message}", e)
             emptyList()
         }
     }
@@ -139,9 +152,10 @@ class FirebaseService(private val context: Context? = null) {
         val database = getDb() ?: return false
         return try {
             database.collection("orders").document(orderId).update("status", newStatus).await()
+            Log.d("FirebaseService", "Successfully updated order #$orderId status to '$newStatus' in Firestore 'orders'")
             true
         } catch (e: Exception) {
-            Log.w("FirebaseService", "Could not update order status in Firestore: ${e.message}")
+            Log.e("FirebaseService", "Could not update order status in Firestore: ${e.message}", e)
             false
         }
     }
@@ -302,20 +316,33 @@ class FirebaseService(private val context: Context? = null) {
 
     // Real-time Firestore Snapshot Listeners for Continuous Auto-Update
     fun listenToOrders(onUpdate: (List<OrderRequest>) -> Unit): ListenerRegistration? {
-        val database = getDb() ?: return null
+        val database = getDb()
+        if (database == null) {
+            Log.e("FirebaseService", "CRITICAL ERROR: Firestore instance is null in listenToOrders")
+            return null
+        }
         return try {
+            Log.d("FirebaseService", "Registering addSnapshotListener on Firestore collection 'orders'...")
             database.collection("orders").addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    Log.w("FirebaseService", "Orders listener error: ${error.message}")
+                    Log.e("FirebaseService", "Firestore 'orders' collection SnapshotListener error: ${error.message}", error)
                     return@addSnapshotListener
                 }
                 if (snapshot != null) {
-                    val orders = snapshot.documents.mapNotNull { it.toObject(OrderRequest::class.java) }
+                    val orders = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            doc.toObject(OrderRequest::class.java)
+                        } catch (e: Exception) {
+                            Log.e("FirebaseService", "Error parsing OrderRequest doc ${doc.id}: ${e.message}")
+                            null
+                        }
+                    }
+                    Log.d("FirebaseService", "SnapshotListener received ${orders.size} orders from Firestore 'orders'")
                     onUpdate(orders)
                 }
             }
         } catch (e: Exception) {
-            Log.w("FirebaseService", "Failed to register orders listener: ${e.message}")
+            Log.e("FirebaseService", "Failed to register orders listener: ${e.message}", e)
             null
         }
     }

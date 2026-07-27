@@ -128,8 +128,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private val _orderErrorMessage = MutableStateFlow<String?>(null)
+    val orderErrorMessage: StateFlow<String?> = _orderErrorMessage.asStateFlow()
+
     fun clearOrderSubmissionResult() {
         _orderSubmissionResult.value = null
+        _orderErrorMessage.value = null
     }
 
     fun submitOrder(
@@ -141,6 +145,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         notes: String
     ) {
         viewModelScope.launch {
+            _orderErrorMessage.value = null
             val randomDigits = (10000..99999).random()
             val orderId = "NV-$randomDigits"
             val total = service.priceEgp * quantity
@@ -160,8 +165,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 status = "PENDING"
             )
 
-            repository.createOrder(newOrder)
-            _orderSubmissionResult.value = newOrder
+            val success = repository.createOrder(newOrder)
+            if (success) {
+                _orderSubmissionResult.value = newOrder
+            } else {
+                _orderSubmissionResult.value = null
+                _orderErrorMessage.value = if (isArabic.value)
+                    "فشل حفظ الطلب في Cloud Firestore. تأكد من الاتصال بالإنترنت وطباعة الخطأ في Logcat."
+                else
+                    "Failed to save order to Cloud Firestore. Check internet connection and Logcat for details."
+            }
         }
     }
 }

@@ -173,20 +173,53 @@ class NeovaRepository(context: Context) {
             dao.saveAppSettings(settings)
             firebaseService.saveAppSettingsToFirestore(settings)
         }
+        if (dao.getOrdersCount() == 0) {
+            val testOrder = OrderRequest(
+                orderId = "NV-88291",
+                customerName = "عميل تجريبي - NEOVA STORE",
+                phone = "01012345678",
+                accountIdOrLink = "https://instagram.com/neovastore_test",
+                serviceId = "srv_1",
+                serviceName = "متابعين إنستجرام حقيقيين 🚀",
+                quantity = 1000,
+                unitPrice = 150.0,
+                totalPrice = 150.0,
+                notes = "طلب تجريبي تلقائي تم إنشاؤه للتحقق من ظهور مجموعة orders في Cloud Firestore لوحة الأدمن",
+                timestamp = System.currentTimeMillis(),
+                status = "PENDING"
+            )
+            val savedRemote = firebaseService.saveOrderToFirestore(testOrder)
+            if (savedRemote) {
+                dao.insertOrder(testOrder)
+                android.util.Log.d("NeovaRepository", "Successfully created test order NV-88291 directly in Firestore collection 'orders'")
+            } else {
+                android.util.Log.e("NeovaRepository", "Failed to create test order in Firestore collection 'orders'")
+            }
+        }
     }
 
     suspend fun createOrder(order: OrderRequest): Boolean = withContext(Dispatchers.IO) {
-        dao.insertOrder(order)
-        firebaseService.saveOrderToFirestore(order)
-        logActivity("طلب جديد #${order.orderId}", "ORDER")
-        true
+        val savedRemote = firebaseService.saveOrderToFirestore(order)
+        if (savedRemote) {
+            dao.insertOrder(order)
+            logActivity("طلب جديد #${order.orderId}", "ORDER")
+            true
+        } else {
+            android.util.Log.e("NeovaRepository", "Failed to write order #${order.orderId} to Firestore 'orders' collection")
+            false
+        }
     }
 
     suspend fun updateOrderStatus(orderId: String, status: String): Boolean = withContext(Dispatchers.IO) {
-        dao.updateOrderStatus(orderId, status)
-        firebaseService.updateOrderStatusInFirestore(orderId, status)
-        logActivity("تعديل حالة الطلب #$orderId إلى $status", "ORDER")
-        true
+        val savedRemote = firebaseService.updateOrderStatusInFirestore(orderId, status)
+        if (savedRemote) {
+            dao.updateOrderStatus(orderId, status)
+            logActivity("تعديل حالة الطلب #$orderId إلى $status", "ORDER")
+            true
+        } else {
+            android.util.Log.e("NeovaRepository", "Failed to update status of order #$orderId in Firestore 'orders'")
+            false
+        }
     }
 
     suspend fun getServiceById(serviceId: String): ServiceItem? = withContext(Dispatchers.IO) {

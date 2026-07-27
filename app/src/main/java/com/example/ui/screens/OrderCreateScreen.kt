@@ -66,6 +66,7 @@ fun OrderCreateScreen(
     service: ServiceItem?,
     isArabic: Boolean,
     submittedOrder: OrderRequest?,
+    submissionError: String? = null,
     onBackClick: () -> Unit,
     onSubmitOrder: (customerName: String, phone: String, accountIdOrLink: String, quantity: Int, notes: String) -> Unit,
     onDismissModal: () -> Unit
@@ -372,10 +373,11 @@ fun OrderCreateScreen(
             }
         }
 
-        if (errorMessage != null) {
+        val activeError = submissionError ?: errorMessage
+        if (activeError != null) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = errorMessage!!,
+                text = activeError,
                 color = MaterialTheme.colorScheme.error,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium

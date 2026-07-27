@@ -137,6 +137,18 @@ interface NeovaDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrder(order: OrderRequest)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrders(orders: List<OrderRequest>)
+
+    @Query("DELETE FROM orders")
+    suspend fun clearAllOrders()
+
+    @Transaction
+    suspend fun replaceAllOrders(orders: List<OrderRequest>) {
+        clearAllOrders()
+        insertOrders(orders)
+    }
+
     @Query("UPDATE orders SET status = :status WHERE orderId = :orderId")
     suspend fun updateOrderStatus(orderId: String, status: String)
 

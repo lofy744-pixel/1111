@@ -143,11 +143,13 @@ fun NavGraph(
                 composable(Routes.ORDER_CREATE) {
                     val selectedService by viewModel.selectedService.collectAsState()
                     val submittedOrder by viewModel.orderSubmissionResult.collectAsState()
+                    val submissionError by viewModel.orderErrorMessage.collectAsState()
 
                     OrderCreateScreen(
                         service = selectedService,
                         isArabic = isArabic,
                         submittedOrder = submittedOrder,
+                        submissionError = submissionError,
                         onBackClick = { navController.popBackStack() },
                         onSubmitOrder = { name, phone, idLink, qty, notes ->
                             if (selectedService != null) {
