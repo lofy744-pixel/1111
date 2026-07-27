@@ -25,12 +25,21 @@ class FirebaseService(private val context: Context? = null) {
 
     private fun getDb(): FirebaseFirestore? {
         return try {
-            val ctx = context
-            if (ctx != null && !isInitialized) {
-                if (FirebaseApp.getApps(ctx).isEmpty()) {
+            val ctx = context?.applicationContext
+            if (ctx != null && FirebaseApp.getApps(ctx).isEmpty()) {
+                try {
                     FirebaseApp.initializeApp(ctx)
+                } catch (e: Exception) {
+                    Log.w("FirebaseService", "Default FirebaseApp.initializeApp failed: ${e.message}. Using explicit FirebaseOptions fallback.")
+                    val options = com.google.firebase.FirebaseOptions.Builder()
+                        .setApiKey("AIzaSyCmOxg2Ud2Ceagwgo9jRrUhBkFbjf7hm6k")
+                        .setApplicationId("1:957326634552:android:bb45737452cc3cb0fdc0cd")
+                        .setProjectId("neova-store")
+                        .setStorageBucket("neova-store.firebasestorage.app")
+                        .setGcmSenderId("957326634552")
+                        .build()
+                    FirebaseApp.initializeApp(ctx, options)
                 }
-                isInitialized = true
             }
             FirebaseFirestore.getInstance()
         } catch (t: Throwable) {
