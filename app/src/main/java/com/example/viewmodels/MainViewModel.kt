@@ -165,15 +165,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 status = "PENDING"
             )
 
-            val success = repository.createOrder(newOrder)
+            val (success, errorMsg) = repository.createOrder(newOrder)
             if (success) {
                 _orderSubmissionResult.value = newOrder
+                _orderErrorMessage.value = null
             } else {
                 _orderSubmissionResult.value = null
                 _orderErrorMessage.value = if (isArabic.value)
-                    "فشل حفظ الطلب في Cloud Firestore. تأكد من الاتصال بالإنترنت وطباعة الخطأ في Logcat."
+                    "فشل حفظ الطلب في Cloud Firestore:\n${errorMsg ?: "خطأ غير معروف"}"
                 else
-                    "Failed to save order to Cloud Firestore. Check internet connection and Logcat for details."
+                    "Failed to save order to Cloud Firestore:\n${errorMsg ?: "Unknown error"}"
             }
         }
     }

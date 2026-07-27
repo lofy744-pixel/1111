@@ -18,30 +18,23 @@ import kotlinx.coroutines.tasks.await
 
 class FirebaseService(private val context: Context? = null) {
 
+    companion object {
+        @Volatile
+        private var isInitialized = false
+    }
+
     private fun getDb(): FirebaseFirestore? {
         return try {
             val ctx = context
-            if (ctx != null) {
+            if (ctx != null && !isInitialized) {
                 if (FirebaseApp.getApps(ctx).isEmpty()) {
                     FirebaseApp.initializeApp(ctx)
                 }
-            } else {
-                if (FirebaseApp.getApps(com.google.firebase.FirebaseApp.getInstance().applicationContext).isEmpty()) {
-                    // Firebase already initialized default app
-                }
+                isInitialized = true
             }
-            val instance = FirebaseFirestore.getInstance()
-            try {
-                val settings = com.google.firebase.firestore.FirebaseFirestoreSettings.Builder()
-                    .setPersistenceEnabled(true)
-                    .build()
-                instance.firestoreSettings = settings
-            } catch (ignored: Exception) {
-                // Settings can only be configured once before Firestore usage
-            }
-            instance
+            FirebaseFirestore.getInstance()
         } catch (t: Throwable) {
-            Log.e("FirebaseService", "Error getting Firestore instance: ${t.message}")
+            Log.e("FirebaseService", "Firestore Error (getDb): ${t.localizedMessage ?: t.message}", t)
             null
         }
     }
@@ -113,20 +106,22 @@ class FirebaseService(private val context: Context? = null) {
         }
     }
 
-    suspend fun saveOrderToFirestore(order: OrderRequest): Boolean {
+    suspend fun saveOrderToFirestore(order: OrderRequest): Pair<Boolean, String?> {
         val database = getDb()
         if (database == null) {
-            Log.e("FirebaseService", "CRITICAL ERROR: Firestore instance is null when saving order #${order.orderId}")
-            return false
+            val err = "Firestore instance is null. Please verify Firebase setup."
+            Log.e("FirebaseService", "CRITICAL ERROR: $err")
+            return Pair(false, err)
         }
         return try {
             Log.d("FirebaseService", "Writing order #${order.orderId} to Firestore collection 'orders'...")
             database.collection("orders").document(order.orderId).set(order).await()
             Log.d("FirebaseService", "SUCCESSFULLY saved order #${order.orderId} to Firestore collection 'orders'")
-            true
+            Pair(true, null)
         } catch (e: Exception) {
-            Log.e("FirebaseService", "FAILED to save order #${order.orderId} to Firestore collection 'orders': ${e.message}", e)
-            false
+            val errorMsg = e.localizedMessage ?: e.message ?: e.toString()
+            Log.e("FirebaseService", "Firestore Error (orders.setDoc): $errorMsg", e)
+            Pair(false, errorMsg)
         }
     }
 

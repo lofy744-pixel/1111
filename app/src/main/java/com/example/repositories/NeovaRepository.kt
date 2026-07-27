@@ -188,25 +188,28 @@ class NeovaRepository(context: Context) {
                 timestamp = System.currentTimeMillis(),
                 status = "PENDING"
             )
-            val savedRemote = firebaseService.saveOrderToFirestore(testOrder)
+            val (savedRemote, errorDetails) = firebaseService.saveOrderToFirestore(testOrder)
             if (savedRemote) {
                 dao.insertOrder(testOrder)
                 android.util.Log.d("NeovaRepository", "Successfully created test order NV-88291 directly in Firestore collection 'orders'")
             } else {
-                android.util.Log.e("NeovaRepository", "Failed to create test order in Firestore collection 'orders'")
+                android.util.Log.e("NeovaRepository", "Failed to create test order in Firestore collection 'orders': $errorDetails")
             }
         }
     }
 
-    suspend fun createOrder(order: OrderRequest): Boolean = withContext(Dispatchers.IO) {
-        val savedRemote = firebaseService.saveOrderToFirestore(order)
+    suspend fun createOrder(order: OrderRequest): Pair<Boolean, String?> = withContext(Dispatchers.IO) {
+        val (savedRemote, errorDetails) = firebaseService.saveOrderToFirestore(order)
         if (savedRemote) {
             dao.insertOrder(order)
             logActivity("طلب جديد #${order.orderId}", "ORDER")
-            true
+            Pair(true, null)
         } else {
-            android.util.Log.e("NeovaRepository", "Failed to write order #${order.orderId} to Firestore 'orders' collection")
-            false
+            // Save locally so order isn't lost, but return detailed Firestore error for feedback
+            dao.insertOrder(order)
+            logActivity("طلب جديد (محلي) #${order.orderId}", "ORDER")
+            android.util.Log.e("NeovaRepository", "Failed to write order #${order.orderId} to Firestore 'orders' collection: $errorDetails")
+            Pair(false, errorDetails)
         }
     }
 
